@@ -14,7 +14,6 @@
         
         * { box-sizing: border-box; }
         
-        /* Imagen de fondo única para la vista del certificado */
         body { 
             margin: 0; 
             min-height: 100vh; 
@@ -23,11 +22,24 @@
             padding: 30px 16px; 
             color: var(--texto-principal); 
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
-            
-            /* Imagen de fondo con overlay oscuro/azulado para resaltar la tarjeta */
-            background: linear-gradient(135deg, rgba(15, 44, 94, 0.75), rgba(17, 54, 122, 0.82)), 
-                        url("{{ asset('images/fondo-tam.jpg') }}") no-repeat center center fixed;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Capa de fondo con la imagen difuminada (blur) */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url("{{ asset('images/fondo-tam.png') }}") no-repeat center center;
             background-size: cover;
+            
+            filter: blur(5px);
+            transform: scale(1.05);
+            z-index: -1;
         }
 
         /* Tarjeta Principal */
@@ -37,8 +49,9 @@
             border-radius: 16px; 
             overflow: hidden;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(4px);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1;
         }
 
         /* 1. Franja Azul Superior */
@@ -65,7 +78,7 @@
             font-weight: 300;
         }
 
-        /* 2. Sección de Logos y Badge Centrado (Grid 3 Columnas) */
+        /* 2. Sección de Logos y Badge Centrado */
         .brand-status-bar {
             padding: 28px 24px 16px;
             display: grid;
@@ -88,13 +101,12 @@
             justify-content: flex-end;
         }
 
-        /* Mismo ancho visual para ambos logos */
         .logo-tam,
         .logo-ciac {
-            width: 180px;
+            width: 170px;
             max-width: 100%;
             height: auto;
-            max-height: 90px;
+            max-height: 75px;
             object-fit: contain;
         }
 
