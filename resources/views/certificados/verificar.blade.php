@@ -23,7 +23,20 @@
 </head>
 <body>
     <main class="card">
-        <header class="header"><h1>Verificación de certificado</h1><p>Sistema de certificados</p></header>
+        <header class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px;">
+                <img src="{{ asset('images/logo-tam.png') }}" 
+                    alt="Logo TAM" 
+                    style="height: 52px; width: auto; max-width: 180px; object-fit: contain;">
+
+                <img src="{{ asset('images/logo-ciac.png') }}" 
+                    alt="Logo CIAC" 
+                    style="height: 52px; width: auto; max-width: 180px; object-fit: contain;">
+            </div>
+
+            <h1>Verificación de certificado</h1>
+            <p>Sistema de certificados - TAM / CIAC</p>
+        </header>
         <section class="content">
             @if ($certificado && $certificado->estado_cer === 'activo')
                 <p class="success">✓ Certificado válido</p>
