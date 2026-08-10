@@ -3,58 +3,298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verificación de certificado</title>
+    <title>Verificación de Certificado - TAM / CIAC</title>
     <style>
-        :root { --azul: #19499C; --amarillo: #FFCD05; }
+        :root { 
+            --azul-principal: #19499C; 
+            --azul-oscuro: #0f2c5e;
+            --amarillo-tam: #FFCD05; 
+            --texto-principal: #1e293b;
+        }
+        
         * { box-sizing: border-box; }
-        body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #f4f7fc; color: #172033; font-family: Arial, sans-serif; }
-        .card { width: min(640px, 100%); overflow: hidden; background: #fff; border-radius: 18px; box-shadow: 0 16px 45px #19499c1f; }
-        .header { padding: 28px 34px; background: var(--azul); color: white; border-bottom: 7px solid var(--amarillo); }
-        .header h1 { margin: 0 0 6px; font-size: 24px; }
-        .header p { margin: 0; opacity: .85; }
-        .content { padding: 34px; }
-        .success { color: #167044; font-weight: bold; }
-        .invalid { color: #b42318; font-weight: bold; }
-        dl { display: grid; grid-template-columns: 150px 1fr; gap: 14px 20px; margin: 24px 0 0; }
-        dt { color: #667085; } dd { margin: 0; font-weight: 600; }
-        .qr { display: block; width: 145px; margin: 30px auto 0; }
-        .code { color: var(--azul); font-family: monospace; }
+        
+        /* Imagen de fondo única para la vista del certificado */
+        body { 
+            margin: 0; 
+            min-height: 100vh; 
+            display: grid; 
+            place-items: center; 
+            padding: 30px 16px; 
+            color: var(--texto-principal); 
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; 
+            
+            /* Imagen de fondo con overlay oscuro/azulado para resaltar la tarjeta */
+            background: linear-gradient(135deg, rgba(15, 44, 94, 0.75), rgba(17, 54, 122, 0.82)), 
+                        url("{{ asset('images/fondo-tam.jpg') }}") no-repeat center center fixed;
+            background-size: cover;
+        }
+
+        /* Tarjeta Principal */
+        .certificate-card { 
+            width: min(720px, 100%); 
+            background: #ffffff; 
+            border-radius: 16px; 
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(4px);
+        }
+
+        /* 1. Franja Azul Superior */
+        .header-banner { 
+            background: linear-gradient(135deg, var(--azul-oscuro) 0%, var(--azul-principal) 100%); 
+            color: white; 
+            padding: 24px 30px;
+            text-align: center;
+            border-bottom: 5px solid var(--amarillo-tam);
+        }
+
+        .header-banner h1 { 
+            margin: 0 0 4px; 
+            font-size: 22px; 
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .header-banner p { 
+            margin: 0; 
+            opacity: 0.88; 
+            font-size: 13px;
+            font-weight: 300;
+        }
+
+        /* 2. Sección de Logos y Badge Centrado (Grid 3 Columnas) */
+        .brand-status-bar {
+            padding: 28px 24px 16px;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 16px;
+            background: #ffffff;
+        }
+
+        .logo-box {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo-box.left {
+            justify-content: flex-start;
+        }
+
+        .logo-box.right {
+            justify-content: flex-end;
+        }
+
+        /* Mismo ancho visual para ambos logos */
+        .logo-tam,
+        .logo-ciac {
+            width: 180px;
+            max-width: 100%;
+            height: auto;
+            max-height: 90px;
+            object-fit: contain;
+        }
+
+        /* Badge de Estado Centrado */
+        .badge-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .badge-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+
+        .badge-valid {
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+
+        .badge-invalid {
+            background: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+        }
+
+        /* 3. Contenido de Datos */
+        .certificate-body { 
+            padding: 10px 30px 32px; 
+            background: #ffffff;
+        }
+
+        .data-grid { 
+            display: grid; 
+            grid-template-columns: 140px 1fr; 
+            gap: 14px 24px; 
+            background: #f8fafc;
+            padding: 22px;
+            border-radius: 12px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .data-grid dt { 
+            color: #64748b; 
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+        } 
+
+        .data-grid dd { 
+            margin: 0; 
+            font-weight: 600; 
+            font-size: 15px;
+            color: #0f172a;
+        }
+
+        .code-highlight { 
+            color: var(--azul-principal); 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        /* Código QR */
+        .qr-section {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 18px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .qr-image { 
+            display: inline-block; 
+            width: 135px; 
+            height: 135px;
+            padding: 8px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+        }
+
+        .footer-note {
+            text-align: center;
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 12px;
+        }
+
+        /* Responsive Móvil */
+        @media (max-width: 650px) {
+            .brand-status-bar {
+                grid-template-columns: 1fr;
+                gap: 16px;
+                justify-items: center;
+            }
+            .logo-box.left,
+            .logo-box.right {
+                justify-content: center;
+            }
+            .data-grid {
+                grid-template-columns: 1fr;
+                gap: 6px 0;
+            }
+            .data-grid dt {
+                font-size: 11px;
+            }
+            .data-grid dd {
+                margin-bottom: 10px;
+            }
+        }
     </style>
 </head>
 <body>
-    <main class="card">
-        <header class="header">
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px;">
-                <img src="{{ asset('images/logo-tam.png') }}" 
-                    alt="Logo TAM" 
-                    style="height: 52px; width: auto; max-width: 180px; object-fit: contain;">
 
-                <img src="{{ asset('images/logo-ciac.png') }}" 
-                    alt="Logo CIAC" 
-                    style="height: 52px; width: auto; max-width: 180px; object-fit: contain;">
+    <main class="certificate-card">
+        
+        <header class="header-banner">
+            <h1>Verificación de Certificado</h1>
+            <p>Sistema de Verificación e Idoneidad Documental</p>
+        </header>
+
+        <div class="brand-status-bar">
+            <div class="logo-box left">
+                <img src="{{ asset('images/logo-tam.png') }}" alt="Logo TAM" class="logo-tam">
             </div>
 
-            <h1>Verificación de certificado</h1>
-            <p>Sistema de certificados - TAM / CIAC</p>
-        </header>
-        <section class="content">
+            <div class="badge-container">
+                @if ($certificado && $certificado->estado_cer === 'activo')
+                    <span class="badge-status badge-valid">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        Certificado Auténtico y Válido
+                    </span>
+                @elseif ($certificado)
+                    <span class="badge-status badge-invalid">✕ Anulado</span>
+                @else
+                    <span class="badge-status badge-invalid">✕ No Encontrado</span>
+                @endif
+            </div>
+
+            <div class="logo-box right">
+                <img src="{{ asset('images/logo-ciac.png') }}" alt="Logo CIAC" class="logo-ciac">
+            </div>
+        </div>
+
+        <section class="certificate-body">
+            
             @if ($certificado && $certificado->estado_cer === 'activo')
-                <p class="success">✓ Certificado válido</p>
-                <dl>
-                    <dt>Participante</dt><dd>{{ $certificado->nombreCompleto() }}</dd>
-                    <dt>Curso</dt><dd>{{ $certificado->curso_cer }}</dd>
-                    <dt>Docente</dt><dd>{{ $certificado->docente_cer }}</dd>
-                    <dt>Fecha de emisión</dt><dd>{{ $certificado->fecha_cer->format('d/m/Y') }}</dd>
-                    <dt>Código</dt><dd class="code">{{ $certificado->codigo_cer }}</dd>
+                
+                <dl class="data-grid">
+                    <dt>Participante</dt>
+                    <dd>{{ $certificado->nombreCompleto() }}</dd>
+
+                    <dt>Curso / Título</dt>
+                    <dd>{{ $certificado->curso_cer }}</dd>
+
+                    <dt>Docente / Instructor</dt>
+                    <dd>{{ $certificado->docente_cer }}</dd>
+
+                    <dt>Fecha Emisión</dt>
+                    <dd>{{ $certificado->fecha_cer->format('d/m/Y') }}</dd>
+
+                    <dt>Código Único</dt>
+                    <dd class="code-highlight">{{ $certificado->codigo_cer }}</dd>
                 </dl>
-                <img class="qr" src="{{ route('certificados.qr', $certificado->codigo_cer) }}" alt="Código QR del certificado">
+
+                <div class="qr-section">
+                    <img class="qr-image" src="{{ route('certificados.qr', $certificado->codigo_cer) }}" alt="Código QR de verificación">
+                    <p class="footer-note">Documento firmado e identificado electrónicamente por TAMep / CIAC</p>
+                </div>
+
             @elseif ($certificado)
-                <p class="invalid">Este certificado fue anulado y no es válido.</p>
-                <p class="code">{{ $certificado->codigo_cer }}</p>
+                
+                <p style="text-align: center; color: #64748b; font-size: 14px; margin-top: 10px;">
+                    Este registro de certificado existía pero ha sido dado de baja en el sistema.
+                </p>
+                <p class="code-highlight" style="text-align: center; margin-top: 12px;">{{ $certificado->codigo_cer }}</p>
+
             @else
-                <p class="invalid">No se encontró un certificado con este código.</p>
+                
+                <p style="text-align: center; color: #64748b; font-size: 14px; margin-top: 10px;">
+                    El código escaneado no corresponde a ningún certificado registrado en nuestra base de datos oficial.
+                </p>
+
             @endif
+
         </section>
     </main>
+
 </body>
 </html>
