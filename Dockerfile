@@ -20,6 +20,9 @@ RUN apt-get update && apt-get install -y \
     zip \
     && rm -rf /var/lib/apt/lists/*
 
+# Instalar y habilitar extensiones PHP (incluyendo intl)
+RUN docker-php-ext-install intl pdo_mysql gd zip bcmath opcache pcntl
+
 # Apache
 RUN a2enmod rewrite
 
