@@ -34,7 +34,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: url("{{ asset('images/fondo-tam.png') }}") no-repeat center center;
+            background: url("{{ asset('images/fondo-tam.webp') }}") no-repeat center center;
             background-size: cover;
             
             filter: blur(5px);
