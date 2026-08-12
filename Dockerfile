@@ -67,6 +67,8 @@ RUN printf '<Directory /var/www/html/public>\n\
 
 RUN a2enconf laravel
 
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+
 EXPOSE 80
 
 CMD ["apache2-foreground"]
