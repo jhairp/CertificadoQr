@@ -1,6 +1,6 @@
 FROM php:8.3-apache
 
-# Dependencias del sistema
+# 1. Dependencias del sistema y extensiones de PHP
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -9,7 +9,9 @@ RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
     libxml2-dev \
-    && docker-php-ext-install \
+    libicu-dev \
+    && docker-php-ext-configure intl \
+    && docker-php-ext-install -j$(nproc) \
     pdo \
     pdo_mysql \
     mbstring \
@@ -18,42 +20,40 @@ RUN apt-get update && apt-get install -y \
     bcmath \
     gd \
     zip \
+    intl \
+    opcache \
     && rm -rf /var/lib/apt/lists/*
 
-# Instalar y habilitar extensiones PHP (incluyendo intl)
-RUN docker-php-ext-install intl pdo_mysql gd zip bcmath opcache pcntl
-
-# Apache
+# 2. Habilitar mod_rewrite para Apache
 RUN a2enmod rewrite
 
-# Composer
+# 3. Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Node.js y npm
+# 4. Node.js y npm
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
 
-# Copiar archivos del proyecto
+# 5. Copiar archivos del proyecto
 COPY . .
 
-# Instalar dependencias PHP
+# 6. Instalar dependencias PHP sin ejecutar scripts que dependan del .env aún
 RUN composer install \
     --no-dev \
     --optimize-autoloader \
-    --no-interaction
+    --no-interaction \
+    --no-scripts
 
-# Instalar dependencias JS y compilar Vite
-RUN npm install
-RUN npm run build
+# 7. Instalar dependencias JS y compilar assets
+RUN npm install && npm run build
 
-# Permisos de Laravel
-RUN chown -R www-data:www-data \
-    storage \
-    bootstrap/cache
+# 8. Permisos de Laravel
+RUN chown -R www-data:www-data storage bootstrap/cache
 
-# Configurar Apache para Laravel
+# 9. Configurar Apache VirtualHost para apuntar a /public
 RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|' \
     /etc/apache2/sites-available/000-default.conf
 
