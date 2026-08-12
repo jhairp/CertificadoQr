@@ -1,11 +1,8 @@
 <?php
 
-namespace App\Filament\Resources\CertificadoResource\Pages;
+namespace App\Filament\Pages;
 
-use App\Filament\Resources\CertificadoResource;
 use Filament\Actions;
-use Filament\Forms\Components\FileUpload;
-use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Facades\Response;
 use OpenSpout\Writer\XLSX\Writer;
 use OpenSpout\Common\Entity\Row;
@@ -14,10 +11,8 @@ use OpenSpout\Common\Entity\Style\Border;
 use OpenSpout\Common\Entity\Style\BorderPart;
 use OpenSpout\Common\Entity\Style\Color;
 
-class ListCertificados extends ListRecords
+class Dashboard extends \Filament\Pages\Dashboard
 {
-    protected static string $resource = CertificadoResource::class;
-
     protected function getHeaderActions(): array
     {
         return [
@@ -38,18 +33,21 @@ class ListCertificados extends ListRecords
                             new BorderPart(Border::RIGHT, Color::BLACK, Border::WIDTH_THIN, Border::STYLE_SOLID)
                         );
 
+                        // Estilo del Encabezado (+ Borde)
                         $headerStyle = (new Style())
                             ->setFontBold()
-                            ->setFontColor(Color::WHITE)
+                            ->setFontColor(Color::WHITE) 
                             ->setBackgroundColor('19499C')
                             ->setBorder($border);
                         
                         $headers = ['NOMBRE', 'APELLIDOS', 'CARNET', 'DOCENTE', 'CURSO', 'FECHA DE EXPEDICIÓN'];
                         $writer->addRow(Row::fromValues($headers, $headerStyle));
 
+                        // Estilos para las filas de datos (+ Borde)
                         $styleCeleste = (new Style())->setBackgroundColor('E8F4F8')->setBorder($border);
                         $styleBlanco = (new Style())->setBackgroundColor('FFFFFF')->setBorder($border);
 
+                        // TRUCO VITAL: Usar ' ' (un espacio) en lugar de '' (vacío)
                         $emptyData = [' ', ' ', ' ', ' ', ' ', ' '];
                         
                         for ($i = 1; $i <= 50; $i++) {
@@ -61,30 +59,6 @@ class ListCertificados extends ListRecords
                     }, 'Plantilla_Certificados_TAMep.xlsx', [
                         'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                     ]);
-                }),
-            
-            Actions\CreateAction::make()
-                ->label('Nuevo Certificado'),
-
-            Actions\Action::make('importExcel')
-                ->label('Importar Lista de Excel')
-                ->icon('heroicon-o-document-arrow-up')
-                ->color('success')
-                ->modalHeading('Cargar archivo Excel de Certificados')
-                ->modalDescription('Selecciona o arrastra el archivo .xlsx o .csv con el listado.')
-                ->modalSubmitActionLabel('Subir Excel')
-                ->modalWidth('lg')
-                ->form([
-                    FileUpload::make('excel_file')
-                        ->label('Archivo Excel')
-                        ->acceptedFileTypes([
-                            'application/vnd.ms-excel',
-                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                        ])
-                        ->required(),
-                ])
-                ->action(function (array $data) {
-                    // Aquí procesaremos el Excel más adelante.
                 }),
         ];
     }
