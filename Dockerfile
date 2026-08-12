@@ -1,6 +1,6 @@
 FROM php:8.3-apache
 
-# 1. Dependencias del sistema y extensiones de PHP
+# 1. Dependencias del sistema y extensiones PHP
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -37,23 +37,26 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 
 WORKDIR /var/www/html
 
-# 5. Copiar archivos del proyecto
+# 5. Copiar código fuente
 COPY . .
 
-# 6. Instalar dependencias PHP sin ejecutar scripts que dependan del .env aún
+# 6. Instalar dependencias PHP
 RUN composer install \
     --no-dev \
     --optimize-autoloader \
     --no-interaction \
     --no-scripts
 
-# 7. Instalar dependencias JS y compilar assets
-RUN npm install && npm run build
+# 7. Compilar Frontend solo si existen las dependencias
+RUN if [ -f package.json ]; then \
+    npm ci || npm install; \
+    npm run build; \
+    fi
 
-# 8. Permisos de Laravel
+# 8. Permisos de carpetas de almacenamiento
 RUN chown -R www-data:www-data storage bootstrap/cache
 
-# 9. Configurar Apache VirtualHost para apuntar a /public
+# 9. Configuración de Apache para el directorio public
 RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|' \
     /etc/apache2/sites-available/000-default.conf
 
