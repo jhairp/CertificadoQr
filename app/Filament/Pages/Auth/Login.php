@@ -6,8 +6,9 @@ use Filament\Auth\Pages\Login as BaseLogin;
 
 class Login extends BaseLogin
 {
-    // ELIMINAMOS la línea de "protected string $view..." 
-    // para que recupere la vista original de Filament.
+    protected string $view = 'filament.pages.auth.login';
+
+    protected static string $layout = 'filament-panels::components.layout.base';
 
     protected function getCredentialsFromFormData(array $data): array
     {
