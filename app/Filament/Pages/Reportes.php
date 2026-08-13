@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use Filament\Pages\Page;
 use App\Models\Certificado;
 use Livewire\WithPagination;
+use Livewire\WithoutUrlPagination; // <-- FIX: Evita el 404 al cambiar de página
 use Illuminate\Support\Facades\Response;
 use OpenSpout\Writer\XLSX\Writer;
 use OpenSpout\Common\Entity\Row;
@@ -15,7 +16,8 @@ use OpenSpout\Common\Entity\Style\Color;
 
 class Reportes extends Page
 {
-    use WithPagination;
+    // Usamos WithoutUrlPagination para que el paginador funcione seguro dentro del modal
+    use WithPagination, WithoutUrlPagination;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-document-chart-bar';
     protected static ?string $navigationLabel = 'Reportes';
@@ -96,17 +98,19 @@ class Reportes extends Page
                 ->setBackgroundColor('19499C')
                 ->setBorder($border);
 
-            $headers = ['NOMBRES', 'APELLIDOS', 'CARNET', 'DOCENTE', 'CURSO', 'FECHA DE EXPEDICIÓN', 'ESTADO'];
+            $headers = ['NOMBRES', 'APELLIDOS', 'CARNET', 'DOCENTE', 'CURSO', 'GESTIÓN', 'FECHA DE EXPEDICIÓN', 'ESTADO'];
             $writer->addRow(Row::fromValues($headers, $headerStyle));
 
             $styleCeleste = (new Style())->setBackgroundColor('E8F4F8')->setBorder($border);
-            $styleBlanco = (new Style())->setBackgroundColor('FFFFFF')->setBorder($border);
+            $styleAmarillo = (new Style())->setBackgroundColor('FFFDE7')->setBorder($border);
 
             $certificados = $this->getCertificadosQuery()->get();
 
             $i = 1;
             foreach ($certificados as $cert) {
-                $currentStyle = ($i % 2 !== 0) ? $styleCeleste : $styleBlanco;
+                $currentStyle = ($i % 2 !== 0) ? $styleCeleste : $styleAmarillo;
+                
+                $gestionStr = $cert->fecha_cer ? (($cert->fecha_cer->format('m') <= 6 ? 'I' : 'II') . ' - ' . $cert->fecha_cer->format('Y')) : 'N/A';
 
                 $rowData = [
                     $cert->nombre_per_cer,
@@ -114,6 +118,7 @@ class Reportes extends Page
                     $cert->carnet_per_cer,
                     $cert->docente_cer,
                     $cert->curso_cer,
+                    $gestionStr,
                     $cert->created_at ? $cert->created_at->format('d/m/Y') : 'N/A',
                     strtoupper($cert->estado_cer),
                 ];
@@ -124,7 +129,7 @@ class Reportes extends Page
             }
 
             if ($certificados->isEmpty()) {
-                $writer->addRow(Row::fromValues(['Sin registros', ' ', ' ', ' ', ' ', ' ', ' '], $styleCeleste));
+                $writer->addRow(Row::fromValues(['Sin registros', ' ', ' ', ' ', ' ', ' ', ' ', ' '], $styleCeleste));
             }
 
             $writer->close();
