@@ -43,21 +43,76 @@ class Usuario extends Authenticatable implements FilamentUser, HasName
         return $this->password_usu;
     }
 
+    /**
+     * Determina si el usuario puede acceder al panel de Filament.
+     * Un usuario debe estar activo para poder ingresar.
+     */
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->estado_usu;
     }
 
+    /**
+     * Superadmin.
+     * id_rol = 3
+     */
+    public function isSuperAdmin(): bool
+    {
+        return (int) $this->id_rol_1 === 3;
+    }
+
+    /**
+     * Administrador.
+     * id_rol = 1
+     */
+    public function isAdmin(): bool
+    {
+        return (int) $this->id_rol_1 === 1;
+    }
+
+    /**
+     * Registrador.
+     * id_rol = 2
+     */
+    public function isRegistrador(): bool
+    {
+        return (int) $this->id_rol_1 === 2;
+    }
+
+    /**
+     * Determina si el usuario puede acceder
+     * al módulo de gestión de usuarios.
+     *
+     * Superadmin y Administrador:
+     *     SI
+     *
+     * Registrador:
+     *     NO
+     */
+    public function canManageUsers(): bool
+    {
+        return $this->isSuperAdmin() || $this->isAdmin();
+    }
+
+    /**
+     * Nombre que mostrará Filament para el usuario.
+     */
     public function getFilamentName(): string
     {
         return $this->nombre_usu;
     }
 
+    /**
+     * Relación con el rol.
+     */
     public function rol(): BelongsTo
     {
         return $this->belongsTo(Rol::class, 'id_rol_1', 'id_rol');
     }
 
+    /**
+     * Relación con certificados.
+     */
     public function certificados(): HasMany
     {
         return $this->hasMany(Certificado::class, 'id_usu_1', 'id_usu');
