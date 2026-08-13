@@ -186,7 +186,6 @@ class ListCertificados extends ListRecords
                     if (!empty($certificadosAInsertar)) {
                         Certificado::insert($certificadosAInsertar);
                         
-                        // Disparamos el SweetAlert Verde
                         $livewire->dispatch('swal', 
                             title: 'Importación Exitosa',
                             html: 'Se han registrado <b>' . count($certificadosAInsertar) . '</b> certificados limpiamente en el sistema.',
