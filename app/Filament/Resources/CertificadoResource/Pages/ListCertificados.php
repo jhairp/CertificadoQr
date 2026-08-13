@@ -6,6 +6,7 @@ use App\Filament\Resources\CertificadoResource;
 use Filament\Actions;
 use Filament\Forms\Components\FileUpload;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Response;
 use OpenSpout\Writer\XLSX\Writer;
 use OpenSpout\Common\Entity\Row;
@@ -21,41 +22,28 @@ class ListCertificados extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Actions\Action::make('downloadTemplate')
+            // 1. BOTÓN PARA DESCARGAR LA PLANTILLA (AHORA CON GESTION)
+            Actions\Action::make('descargarPlantilla')
                 ->label('Descargar Plantilla')
-                ->icon('heroicon-o-arrow-down-tray')
-                ->color('gray')
+                ->icon('heroicon-o-table-cells')
+                ->color('info')
                 ->action(function () {
                     return Response::streamDownload(function () {
                         $writer = new Writer();
                         $writer->openToFile('php://output');
-
-                        // NUEVA SINTAXIS OPENSSPOUT v4 PARA BORDES
-                        $border = new Border(
-                            new BorderPart(Border::BOTTOM, Color::BLACK, Border::WIDTH_THIN, Border::STYLE_SOLID),
-                            new BorderPart(Border::TOP, Color::BLACK, Border::WIDTH_THIN, Border::STYLE_SOLID),
-                            new BorderPart(Border::LEFT, Color::BLACK, Border::WIDTH_THIN, Border::STYLE_SOLID),
-                            new BorderPart(Border::RIGHT, Color::BLACK, Border::WIDTH_THIN, Border::STYLE_SOLID)
-                        );
-
+                        
                         $headerStyle = (new Style())
                             ->setFontBold()
                             ->setFontColor(Color::WHITE)
-                            ->setBackgroundColor('19499C')
-                            ->setBorder($border);
-                        
-                        $headers = ['NOMBRE', 'APELLIDOS', 'CARNET', 'DOCENTE', 'CURSO', 'FECHA DE EXPEDICIÓN'];
+                            ->setBackgroundColor('19499C');
+
+                        // NUEVAS CABECERAS CON "GESTION"
+                        $headers = ['NOMBRE', 'APELLIDOS', 'CARNET', 'DOCENTE', 'CURSO', 'GESTION'];
                         $writer->addRow(Row::fromValues($headers, $headerStyle));
 
-                        $styleCeleste = (new Style())->setBackgroundColor('E8F4F8')->setBorder($border);
-                        $styleBlanco = (new Style())->setBackgroundColor('FFFFFF')->setBorder($border);
-
-                        $emptyData = [' ', ' ', ' ', ' ', ' ', ' '];
-                        
-                        for ($i = 1; $i <= 50; $i++) {
-                            $currentStyle = ($i % 2 !== 0) ? $styleCeleste : $styleBlanco;
-                            $writer->addRow(Row::fromValues($emptyData, $currentStyle));
-                        }
+                        // Fila de ejemplo prellenada para guiar al usuario
+                        $ejemplo = ['JUAN PABLO', 'PEREZ GOMEZ', '1234567', 'ING. ROBERTO DIAZ', 'SEGURIDAD AEREA', 'I - 2026'];
+                        $writer->addRow(Row::fromValues($ejemplo));
 
                         $writer->close();
                     }, 'Plantilla_Certificados_TAMep.xlsx', [
@@ -63,29 +51,34 @@ class ListCertificados extends ListRecords
                     ]);
                 }),
             
-            Actions\CreateAction::make()
-                ->label('Nuevo Certificado'),
-
-            Actions\Action::make('importExcel')
-                ->label('Importar Lista de Excel')
-                ->icon('heroicon-o-document-arrow-up')
+            Actions\Action::make('importarExcel')
+                ->label('Importar Excel')
+                ->icon('heroicon-o-arrow-up-on-square-stack')
                 ->color('success')
-                ->modalHeading('Cargar archivo Excel de Certificados')
-                ->modalDescription('Selecciona o arrastra el archivo .xlsx o .csv con el listado.')
-                ->modalSubmitActionLabel('Subir Excel')
-                ->modalWidth('lg')
+                ->modalHeading('Importar Emisión Masiva')
+                ->modalDescription('Asegúrate de que tu Excel contenga exactamente estas 6 columnas: NOMBRE, APELLIDOS, CARNET, DOCENTE, CURSO, GESTION.')
+                ->modalSubmitActionLabel('Procesar Datos')
                 ->form([
-                    FileUpload::make('excel_file')
-                        ->label('Archivo Excel')
+                    FileUpload::make('archivo')
+                        ->label('Archivo Excel (.xlsx)')
                         ->acceptedFileTypes([
-                            'application/vnd.ms-excel',
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'application/vnd.ms-excel',
                         ])
                         ->required(),
                 ])
                 ->action(function (array $data) {
-                    // Aquí procesaremos el Excel más adelante.
+                    // En el siguiente paso agregaremos la lógica que leerá este archivo
+                    // y guardará todo convertido a MAYÚSCULAS en la base de datos.
+                    Notification::make()
+                        ->title('Archivo preparado')
+                        ->body('La interfaz de importación está lista. (Lógica de lectura pendiente)')
+                        ->success()
+                        ->send();
                 }),
+
+            // 3. EL BOTÓN NATIVO DE CREAR (Siempre de último)
+            Actions\CreateAction::make()->label('Nuevo Certificado'),
         ];
     }
 }

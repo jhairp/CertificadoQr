@@ -22,13 +22,11 @@ class Reportes extends Page
     protected ?string $heading = 'Centro de Reportes TAMep';
     protected string $view = 'filament.pages.reportes';
 
-    // Filtros
     public ?string $curso = '';
     public ?string $docente = '';
     public ?string $gestion = '';
     public ?string $estado = '';
 
-    // Si cambian los filtros, regresamos a la página 1 de la tabla
     public function updatedCurso() { $this->resetPage(); }
     public function updatedDocente() { $this->resetPage(); }
     public function updatedGestion() { $this->resetPage(); }
@@ -37,14 +35,18 @@ class Reportes extends Page
     public function resetFiltros(): void
     {
         $this->curso = '';
-        $this->docente = '';$this->gestion = '';
-        $this->estado = '';$this->resetPage();
+        $this->docente = '';
+        $this->gestion = '';
+        $this->estado = '';
+        $this->resetPage();
     }
 
     public function getGestionesOptionsProperty(): array
     {
-        $yearActual = (int) date('Y');$gestiones = [];
-        for ($year =$yearActual + 1; $year >=$yearActual - 3; $year--) {$gestiones["II-{$year}"] = "II - {$year}";
+        $yearActual = (int) date('Y');
+        $gestiones = [];
+        for ($year = $yearActual + 1; $year >= $yearActual - 3; $year--) {
+            $gestiones["II-{$year}"] = "II - {$year}";
             $gestiones["I-{$year}"] = "I - {$year}";
         }
         return $gestiones;
@@ -59,16 +61,16 @@ class Reportes extends Page
     {
         $query = Certificado::query();
 
-        if (!empty($this->curso)) $query->where('curso_cer',$this->curso);
-        if (!empty($this->docente)) $query->where('docente_cer',$this->docente);
-        if (!empty($this->estado)) $query->where('estado_cer',$this->estado);
+        if (!empty($this->curso)) $query->where('curso_cer', $this->curso);
+        if (!empty($this->docente)) $query->where('docente_cer', $this->docente);
+        if (!empty($this->estado)) $query->where('estado_cer', $this->estado);
         
         if (!empty($this->gestion)) {
-            [$semestre, $year] = explode('-',$this->gestion);
+            [$semestre, $year] = explode('-', $this->gestion);
             if ($semestre === 'I') {
-                $query->whereYear('fecha_cer',$year)->whereMonth('fecha_cer', '>=', 1)->whereMonth('fecha_cer', '<=', 6);
+                $query->whereYear('fecha_cer', $year)->whereMonth('fecha_cer', '>=', 1)->whereMonth('fecha_cer', '<=', 6);
             } else {
-                $query->whereYear('fecha_cer',$year)->whereMonth('fecha_cer', '>=', 7)->whereMonth('fecha_cer', '<=', 12);
+                $query->whereYear('fecha_cer', $year)->whereMonth('fecha_cer', '>=', 7)->whereMonth('fecha_cer', '<=', 12);
             }
         }
 
@@ -78,7 +80,8 @@ class Reportes extends Page
     public function exportarExcel()
     {
         return Response::streamDownload(function () {
-            $writer = new Writer();$writer->openToFile('php://output');
+            $writer = new Writer();
+            $writer->openToFile('php://output');
 
             $border = new Border(
                 new BorderPart(Border::BOTTOM, Color::BLACK, Border::WIDTH_THIN, Border::STYLE_SOLID),
@@ -93,32 +96,35 @@ class Reportes extends Page
                 ->setBackgroundColor('19499C')
                 ->setBorder($border);
 
-            $headers = ['CÓDIGO', 'NOMBRES', 'APELLIDOS', 'CARNET', 'DOCENTE', 'CURSO', 'FECHA DE EMISIÓN', 'ESTADO'];
-            $writer->addRow(Row::fromValues($headers,$headerStyle));
+            $headers = ['NOMBRES', 'APELLIDOS', 'CARNET', 'DOCENTE', 'CURSO', 'FECHA DE EXPEDICIÓN', 'ESTADO'];
+            $writer->addRow(Row::fromValues($headers, $headerStyle));
 
             $styleCeleste = (new Style())->setBackgroundColor('E8F4F8')->setBorder($border);
-            $styleAmarillo = (new Style())->setBackgroundColor('FFFDE7')->setBorder($border);
+            $styleBlanco = (new Style())->setBackgroundColor('FFFFFF')->setBorder($border);
 
-            $certificados =$this->getCertificadosQuery()->get();
+            $certificados = $this->getCertificadosQuery()->get();
 
             $i = 1;
-            foreach ($certificados as$cert) {
-                $currentStyle = ($i % 2 !== 0) ? $styleCeleste :$styleAmarillo;
+            foreach ($certificados as $cert) {
+                $currentStyle = ($i % 2 !== 0) ? $styleCeleste : $styleBlanco;
 
                 $rowData = [
-                    $cert->codigo_cer,$cert->nombre_per_cer,
-                    $cert->apellido_per_cer,$cert->carnet_per_cer,
-                    $cert->docente_cer,$cert->curso_cer,
-                    $cert->fecha_cer ? $cert->fecha_cer->format('d/m/Y') : 'N/A',
+                    $cert->nombre_per_cer,
+                    $cert->apellido_per_cer,
+                    $cert->carnet_per_cer,
+                    $cert->docente_cer,
+                    $cert->curso_cer,
+                    $cert->created_at ? $cert->created_at->format('d/m/Y') : 'N/A',
                     strtoupper($cert->estado_cer),
                 ];
 
-                $rowData = array_map(fn($value) => empty($value) ? ' ' : $value,$rowData);
-                $writer->addRow(Row::fromValues($rowData, $currentStyle));$i++;
+                $rowData = array_map(fn($value) => empty($value) ? ' ' : $value, $rowData);
+                $writer->addRow(Row::fromValues($rowData, $currentStyle));
+                $i++;
             }
 
             if ($certificados->isEmpty()) {
-                $writer->addRow(Row::fromValues(['Sin registros', ' ', ' ', ' ', ' ', ' ', ' ', ' '],$styleCeleste));
+                $writer->addRow(Row::fromValues(['Sin registros', ' ', ' ', ' ', ' ', ' ', ' '], $styleCeleste));
             }
 
             $writer->close();
