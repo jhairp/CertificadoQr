@@ -3,10 +3,8 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UsuarioResource\Pages;
-use App\Models\Rol;
 use App\Models\Usuario;
 use Filament\Actions\Action;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -51,34 +49,20 @@ class UsuarioResource extends Resource
 
     /**
      * Superadmin y Administrador pueden crear usuarios.
-     * La selección de roles se controla posteriormente en el formulario.
      */
     public static function canCreate(): bool
     {
         $user = auth()->user();
-        if (! $user) return false;
-        
-        // Superadmin y Admin pueden crear (pero Admin solo registradores)
+
+        if (! $user) {
+            return false;
+        }
+
         return $user->isSuperAdmin() || $user->isAdmin();
     }
 
     /**
      * Determina quién puede editar a cada usuario.
-     *
-     * SUPERADMIN:
-     * - Puede editar Administradores.
-     * - Puede editar Registradores.
-     * - Puede editarse a sí mismo.
-     *
-     * ADMIN:
-     * - Puede editar Registradores.
-     * - Puede editarse a sí mismo.
-     * - NO puede editar otros Administradores.
-     * - NO puede editar Superadmin.
-     *
-     * REGISTRADOR:
-     * - Solo puede editarse a sí mismo.
-     * - Pero NO tiene acceso a este módulo.
      */
     public static function canEdit($record): bool
     {
@@ -89,7 +73,7 @@ class UsuarioResource extends Resource
         }
 
         /*
-         * Nadie puede editar un Superadmin desde este módulo,
+         * Nadie puede editar un Superadmin,
          * excepto el propio Superadmin.
          */
         if ($record->isSuperAdmin()) {
@@ -118,8 +102,7 @@ class UsuarioResource extends Resource
 
         /*
          * Registrador.
-         * Esta condición queda como protección adicional,
-         * aunque el Registrador no puede visualizar el módulo.
+         * Protección adicional.
          */
         if ($user->isRegistrador()) {
             return $record->id_usu === $user->id_usu;
@@ -129,87 +112,32 @@ class UsuarioResource extends Resource
     }
 
     /**
-     * Determina quién puede eliminar a cada usuario.
-     *
-     * SUPERADMIN:
-     * - Puede eliminar Administradores.
-     * - Puede eliminar Registradores.
-     * - NO puede eliminarse a sí mismo.
-     * - NO puede eliminar otro Superadmin.
-     *
-     * ADMIN:
-     * - Puede eliminar Registradores.
-     * - NO puede eliminar Administradores.
-     * - NO puede eliminar Superadmin.
-     * - NO puede eliminarse a sí mismo.
-     *
-     * REGISTRADOR:
-     * - No puede eliminar usuarios.
-     */
-    public static function canDelete($record): bool
-    {
-        $user = auth()->user();
-
-        if (! $user) {
-            return false;
-        }
-
-        /*
-         * Nadie puede eliminarse a sí mismo.
-         */
-        if ($record->id_usu === $user->id_usu) {
-            return false;
-        }
-
-        /*
-         * Un Superadmin no puede ser eliminado.
-         */
-        if ($record->isSuperAdmin()) {
-            return false;
-        }
-
-        /*
-         * Superadmin puede eliminar:
-         * - Administradores
-         * - Registradores
-         */
-        if ($user->isSuperAdmin()) {
-            return $record->isAdmin()
-                || $record->isRegistrador();
-        }
-
-        /*
-         * Administrador solamente puede eliminar
-         * Registradores.
-         */
-        if ($user->isAdmin()) {
-            return $record->isRegistrador();
-        }
-
-        /*
-         * Registrador no puede eliminar usuarios.
-         */
-        return false;
-    }
-
-    /**
-     * Sobrescribimos el query para filtrar qué usuarios se muestran en la lista
+     * Filtra los usuarios que aparecen en el listado.
      */
     public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
         $user = auth()->user();
 
-        if (!$user) {
+        if (! $user) {
             return $query;
         }
 
+        /*
+         * ADMIN:
+         * Puede ver Registradores y a sí mismo.
+         */
         if ($user->isAdmin()) {
-            // El admin solo ve registradores
-            return $query->where('id_rol_1', 2);
+            return $query->where(function (Builder $subQuery) use ($user) {
+                $subQuery->where('id_rol_1', 2)
+                    ->orWhere('id_usu', $user->id_usu);
+            });
         }
 
-        // Superadmin ve todos los usuarios
+        /*
+         * SUPERADMIN:
+         * Puede ver todos.
+         */
         return $query;
     }
 
@@ -238,80 +166,138 @@ class UsuarioResource extends Resource
                         ->maxLength(150)
                         ->unique(ignoreRecord: true),
 
-                Select::make('id_rol_1')
-                    ->label('Rol')
-                    ->options(function (?Usuario $record): array {
-                        $user = auth()->user();
+                    Select::make('id_rol_1')
+                        ->label('Rol')
+                        ->options(function (?Usuario $record): array {
+                            $user = auth()->user();
 
-                        if (! $user) {
-                            return [];
-                        }
-
-                        /*
-                        * SUPERADMIN
-                        * Puede gestionar los roles de Administrador y Registrador.
-                        * No mostramos Superadmin como opción para crear nuevos usuarios.
-                        */
-                        if ($user->isSuperAdmin()) {
-                            $roles = [
-                                1 => 'Administrador',
-                                2 => 'Registrador',
-                            ];
-
-                            /*
-                            * Si estamos editando al propio Superadmin,
-                            * mostramos su rol actual para conservarlo.
-                            */
-                            if ($record?->id_usu === $user->id_usu && (int) $record->id_rol_1 === 3) {
-                                $roles[3] = 'Superadministrador';
+                            if (! $user) {
+                                return [];
                             }
 
-                            return $roles;
-                        }
+                            /*
+                             * ==================================================
+                             * SUPERADMIN
+                             * ==================================================
+                             *
+                             * Puede gestionar:
+                             * 1 = Administrador
+                             * 2 = Registrador
+                             *
+                             * Si se está editando a sí mismo:
+                             * 3 = Superadministrador
+                             */
+                            if ($user->isSuperAdmin()) {
 
-                        /*
-                        * ADMIN
-                        * Solo puede trabajar con Registradores.
-                        */
-                        if ($user->isAdmin()) {
-                            return [
-                                2 => 'Registrador',
-                            ];
-                        }
+                                $roles = [
+                                    1 => 'Administrador',
+                                    2 => 'Registrador',
+                                ];
 
-                        /*
-                        * Registrador no debería llegar aquí,
-                        * pero devolvemos vacío como protección.
-                        */
-                        return [];
-                    })
-                    ->disabled(function (?Usuario $record): bool {
-                        $user = auth()->user();
+                                /*
+                                 * Si el Superadmin se está editando
+                                 * a sí mismo, mostramos su rol.
+                                 */
+                                if (
+                                    $record?->id_usu === $user->id_usu
+                                    && (int) $record->id_rol_1 === 3
+                                ) {
+                                    $roles[3] = 'Superadministrador';
+                                }
 
-                        if (! $user) {
-                            return true;
-                        }
+                                return $roles;
+                            }
 
-                        /*
-                        * El Superadmin no puede cambiar su propio rol.
-                        */
-                        if ($user->isSuperAdmin() && $record?->id_usu === $user->id_usu) {
-                            return true;
-                        }
+                            /*
+                             * ==================================================
+                             * ADMINISTRADOR
+                             * ==================================================
+                             *
+                             * Si el administrador se está editando
+                             * a sí mismo, debe aparecer:
+                             *
+                             * 1 = Administrador
+                             *
+                             * Si está editando un Registrador:
+                             *
+                             * 2 = Registrador
+                             */
+                            if ($user->isAdmin()) {
 
-                        /*
-                        * EL ADMIN AHORA PUEDE VER EL CAMPO PERO SOLO CON LA OPCIÓN REGISTRADOR
-                        * Por eso ya no está deshabilitado
-                        */
-                        // ELIMINAMOS ESTA LÍNEA:
-                        // if ($user->isAdmin()) {
-                        //     return true;
-                        // }
+                                /*
+                                 * ADMIN EDITÁNDOSE A SÍ MISMO
+                                 */
+                                if (
+                                    $record?->id_usu === $user->id_usu
+                                    && (int) $record->id_rol_1 === 1
+                                ) {
+                                    return [
+                                        1 => 'Administrador',
+                                    ];
+                                }
 
-                        return false;
-                    })
-                    ->required()
-                    ->native(false),
+                                /*
+                                 * ADMIN EDITANDO REGISTRADOR
+                                 */
+                                return [
+                                    2 => 'Registrador',
+                                ];
+                            }
+
+                            /*
+                             * ==================================================
+                             * REGISTRADOR
+                             * ==================================================
+                             */
+                            return [];
+                        })
+                        ->disabled(function (?Usuario $record): bool {
+                            $user = auth()->user();
+
+                            if (! $user) {
+                                return true;
+                            }
+
+                            /*
+                             * SUPERADMIN EDITÁNDOSE A SÍ MISMO
+                             *
+                             * No puede cambiar su propio rol.
+                             */
+                            if (
+                                $user->isSuperAdmin()
+                                && $record?->id_usu === $user->id_usu
+                            ) {
+                                return true;
+                            }
+
+                            /*
+                             * ADMINISTRADOR EDITÁNDOSE A SÍ MISMO
+                             *
+                             * Su rol debe permanecer como Administrador.
+                             */
+                            if (
+                                $user->isAdmin()
+                                && $record?->id_usu === $user->id_usu
+                            ) {
+                                return true;
+                            }
+
+                            /*
+                             * ADMIN editando Registrador:
+                             * puede visualizar Registrador,
+                             * pero no cambiarlo a otro rol.
+                             */
+                            if (
+                                $user->isAdmin()
+                                && $record?->isRegistrador()
+                            ) {
+                                return true;
+                            }
+
+                            return false;
+                        })
+                        ->required()
+                        ->native(false),
 
                 ])
                 ->columns(3),
@@ -483,9 +469,6 @@ class UsuarioResource extends Resource
                             return $record->isRegistrador();
                         }
 
-                        /*
-                         * Registrador no puede hacerlo.
-                         */
                         return false;
                     })
                     ->action(function (Usuario $record): void {
@@ -504,6 +487,7 @@ class UsuarioResource extends Resource
                                 ->title('Acción no permitida')
                                 ->body('No puedes desactivar tu propio usuario.')
                                 ->send();
+
                             return;
                         }
 
@@ -516,18 +500,26 @@ class UsuarioResource extends Resource
                                 ->title('Acción no permitida')
                                 ->body('El Superadmin no puede ser deshabilitado.')
                                 ->send();
+
                             return;
                         }
 
                         /*
-                         * ADMIN - Solo puede modificar Registradores.
+                         * ADMIN:
+                         * Solo puede modificar Registradores.
                          */
-                        if ($user->isAdmin() && ! $record->isRegistrador()) {
+                        if (
+                            $user->isAdmin()
+                            && ! $record->isRegistrador()
+                        ) {
                             Notification::make()
                                 ->danger()
                                 ->title('Acción no permitida')
-                                ->body('Los administradores solamente pueden activar o desactivar registradores.')
+                                ->body(
+                                    'Los administradores solamente pueden activar o desactivar registradores.'
+                                )
                                 ->send();
+
                             return;
                         }
 
@@ -538,8 +530,11 @@ class UsuarioResource extends Resource
                             Notification::make()
                                 ->danger()
                                 ->title('Acción no permitida')
-                                ->body('Los registradores no pueden activar ni desactivar usuarios.')
+                                ->body(
+                                    'Los registradores no pueden activar ni desactivar usuarios.'
+                                )
                                 ->send();
+
                             return;
                         }
 
@@ -569,18 +564,6 @@ class UsuarioResource extends Resource
                     ->visible(function (Usuario $record): bool {
                         return self::canEdit($record);
                     }),
-
-                /*
-                 * ==========================================================
-                 * ELIMINAR
-                 * ==========================================================
-                 */
-
-                DeleteAction::make()
-                    ->visible(
-                        fn (Usuario $record): bool =>
-                            self::canDelete($record)
-                    ),
 
             ]);
     }

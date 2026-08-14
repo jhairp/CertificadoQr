@@ -4,7 +4,6 @@ namespace App\Filament\Resources\UsuarioResource\Pages;
 
 use App\Filament\Resources\UsuarioResource;
 use App\Models\Usuario;
-use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
 
@@ -13,8 +12,18 @@ class EditUsuario extends EditRecord
     protected static string $resource = UsuarioResource::class;
 
     /**
+     * Después de guardar correctamente los cambios,
+     * regresar automáticamente al listado de usuarios.
+     */
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
+
+    /**
      * Protege los datos antes de guardar los cambios.
-     * Aquí se vuelve a validar la matriz de permisos,
+     *
+     * La matriz de permisos se valida nuevamente en el servidor,
      * independientemente de lo que muestre el formulario.
      */
     protected function mutateFormDataBeforeSave(array $data): array
@@ -35,16 +44,19 @@ class EditUsuario extends EditRecord
          * ==============================================================
          */
         if ($user->isSuperAdmin()) {
-            // Superadmin editándose a sí mismo
+
+            // Superadmin editándose a sí mismo.
             if ($record->id_usu === $user->id_usu) {
                 $data['id_rol_1'] = 3;
+
                 return $data;
             }
 
-            // Superadmin editando Admin o Registrador
+            // Superadmin editando Administrador o Registrador.
             if ($record->isAdmin() || $record->isRegistrador()) {
-                // Mantenemos el rol original
+                // Mantener el rol original.
                 $data['id_rol_1'] = $record->id_rol_1;
+
                 return $data;
             }
 
@@ -57,15 +69,18 @@ class EditUsuario extends EditRecord
          * ==============================================================
          */
         if ($user->isAdmin()) {
-            // Admin editándose a sí mismo
+
+            // Administrador editándose a sí mismo.
             if ($record->id_usu === $user->id_usu) {
                 $data['id_rol_1'] = 1;
+
                 return $data;
             }
 
-            // Admin editando Registrador
+            // Administrador editando Registrador.
             if ($record->isRegistrador()) {
                 $data['id_rol_1'] = 2;
+
                 return $data;
             }
 
@@ -82,13 +97,13 @@ class EditUsuario extends EditRecord
          * ==============================================================
          * REGISTRADOR
          * ==============================================================
-         * El Registrador no puede acceder a este módulo.
-         * Esta validación queda como una segunda capa de seguridad.
          */
         if ($user->isRegistrador()) {
-            // Si por alguna razón llegara a esta página, solamente podría editarse a sí mismo
+
+            // Segunda capa de seguridad.
             if ($record->id_usu === $user->id_usu) {
                 $data['id_rol_1'] = 2;
+
                 return $data;
             }
 
@@ -102,20 +117,13 @@ class EditUsuario extends EditRecord
     }
 
     /**
-     * Acciones disponibles en la parte superior de la página de edición.
+     * No mostrar acciones adicionales en la cabecera.
+     *
+     * La eliminación física de usuarios no está permitida.
+     * Las bajas se realizan mediante el estado activo/inactivo.
      */
     protected function getHeaderActions(): array
     {
-        return [
-            DeleteAction::make()
-                /*
-                 * Utilizamos exactamente la misma lógica
-                 * centralizada del UsuarioResource.
-                 */
-                ->visible(
-                    fn (): bool =>
-                        UsuarioResource::canDelete($this->record)
-                ),
-        ];
+        return [];
     }
 }
