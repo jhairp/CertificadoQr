@@ -3,13 +3,26 @@
 namespace App\Filament\Resources\UsuarioResource\Pages;
 
 use App\Filament\Resources\UsuarioResource;
-use App\Models\Usuario;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateUsuario extends CreateRecord
 {
     protected static string $resource = UsuarioResource::class;
+
+    /**
+     * Deshabilita el botón "Crear y crear otro".
+     */
+    protected static bool $canCreateAnother = false;
+
+    /**
+     * Después de crear correctamente el usuario,
+     * regresar automáticamente al listado de usuarios.
+     */
+    protected function getRedirectUrl(): string
+    {
+        return $this->getResource()::getUrl('index');
+    }
 
     /**
      * Protege los datos antes de crear el usuario.
@@ -19,13 +32,13 @@ class CreateUsuario extends CreateRecord
      * SUPERADMIN:
      * - Puede crear Administradores.
      * - Puede crear Registradores.
-     * - NO puede crear otro Superadmin.
+     * - No puede crear otro Superadmin.
      *
      * ADMIN:
      * - Solamente puede crear Registradores.
      *
      * REGISTRADOR:
-     * - No puede acceder a esta página.
+     * - No puede crear usuarios.
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
@@ -39,11 +52,6 @@ class CreateUsuario extends CreateRecord
          * ==============================================================
          * SUPERADMIN
          * ==============================================================
-         * Puede crear:
-         * 1 = Administrador
-         * 2 = Registrador
-         * NO puede crear:
-         * 3 = Superadmin
          */
         if ($user->isSuperAdmin()) {
             if (! in_array((int) $data['id_rol_1'], [1, 2], true)) {
@@ -52,8 +60,10 @@ class CreateUsuario extends CreateRecord
                     ->title('Acción no permitida')
                     ->body('No se pueden crear nuevos usuarios con el rol Superadministrador.')
                     ->send();
+
                 abort(403);
             }
+
             return $data;
         }
 
@@ -61,11 +71,11 @@ class CreateUsuario extends CreateRecord
          * ==============================================================
          * ADMIN
          * ==============================================================
-         * Un Administrador solamente puede crear Registradores.
          */
         if ($user->isAdmin()) {
-            // Forzamos el rol a Registrador incluso si alguien intenta manipular la petición
+            // Un administrador solamente puede crear Registradores.
             $data['id_rol_1'] = 2;
+
             return $data;
         }
 
@@ -73,14 +83,13 @@ class CreateUsuario extends CreateRecord
          * ==============================================================
          * REGISTRADOR
          * ==============================================================
-         * Un Registrador no puede crear usuarios.
          */
         if ($user->isRegistrador()) {
             abort(403);
         }
 
         /*
-         * Cualquier otro caso también queda bloqueado.
+         * Cualquier otro caso queda bloqueado.
          */
         abort(403);
     }
