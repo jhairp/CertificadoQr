@@ -58,8 +58,6 @@ class CertificadoResource extends Resource
                 Select::make('curso_cer')
                     ->label('Curso')
                     ->options(config('courses.options'))
-                    ->live()
-                    ->afterStateUpdated(fn (Set $set, ?string $state) => $set('docente_cer', config("courses.teachers.{$state}")))
                     ->required(),
                 
                 TextInput::make('docente_cer')

@@ -13,6 +13,10 @@ use OpenSpout\Common\Entity\Style\Color;
 
 class Dashboard extends \Filament\Pages\Dashboard
 {
+    protected static ?string $navigationLabel = 'Panel de control';
+
+    protected static ?string $title = 'Panel de control';
+    
     protected function getHeaderActions(): array
     {
         return [
