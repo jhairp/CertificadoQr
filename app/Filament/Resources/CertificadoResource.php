@@ -4,9 +4,13 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\CertificadoResource\Pages;
 use App\Models\Certificado;
+
+// IMPORTACIONES CORRECTAS Y UNIFICADAS PARA TU VERSIÓN DE FILAMENT
+use Filament\Actions\ActionGroup;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -18,6 +22,11 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
+
+// Librerías para el QR y el PDF
+use Endroid\QrCode\QrCode;
+use Endroid\QrCode\Writer\PngWriter;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class CertificadoResource extends Resource
 {
@@ -99,7 +108,6 @@ class CertificadoResource extends Resource
                 TextColumn::make('codigo_cer')->label('Código')->searchable()->copyable(),
                 TextColumn::make('nombre_per_cer')->label('Participante')->formatStateUsing(fn (Certificado $record): string => $record->nombreCompleto())->searchable(['nombre_per_cer', 'apellido_per_cer']),
                 
-                // NUEVO: Agregado Docente a la tabla principal
                 TextColumn::make('docente_cer')->label('Docente')->searchable(),
                 
                 TextColumn::make('curso_cer')->label('Curso')->searchable(),
@@ -120,9 +128,60 @@ class CertificadoResource extends Resource
                 SelectFilter::make('curso_cer')->label('Curso')->options(config('courses.options')),
             ])
             ->recordActions([
-                Action::make('verificar')->label('Verificar')->icon('heroicon-o-qr-code')->url(fn (Certificado $record): string => route('certificados.verificar', $record->codigo_cer))->openUrlInNewTab(),
-                EditAction::make(),
-                DeleteAction::make(),
+                // MENÚ DE 3 RAYAS CON LAS OPCIONES AGRUPADAS
+                ActionGroup::make([
+                    
+                    // 1. Descargar QR
+                    Action::make('descargarQR')
+                        ->label('Descargar QR')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('success')
+                        ->action(function (Certificado $record) {
+                            
+                            // FIX APLICADO AQUÍ: Argumentos con nombre en el constructor para Endroid v5+
+                            $qrCode = new QrCode(
+                                data: route('certificados.verificar', $record->codigo_cer),
+                                size: 200,
+                                margin: 10
+                            );
+                            
+                            $writer = new PngWriter();
+                            $dataUri = $writer->write($qrCode)->getDataUri();
+
+                            $html = '<!DOCTYPE html>
+                            <html>
+                            <head><style>body { margin: 0; padding: 0; }</style></head>
+                            <body>
+                                <div style="position: absolute; bottom: 40px; right: 40px; width: 160px; text-align: center;">
+                                    <img src="' . $dataUri . '" style="width: 150px; height: 150px;" />
+                                    <p style="font-family: sans-serif; font-size: 11px; margin-top: 5px; color: #333;">' . $record->codigo_cer . '</p>
+                                </div>
+                            </body>
+                            </html>';
+
+                            $pdf = Pdf::loadHTML($html)->setPaper('a4', 'landscape');
+
+                            return response()->streamDownload(
+                                fn () => print($pdf->output()),
+                                'QR_' . $record->codigo_cer . '.pdf'
+                            );
+                        }),
+
+                    // 2. Verificar Web
+                    Action::make('verificar')
+                        ->label('Verificar Web')
+                        ->icon('heroicon-o-qr-code')
+                        ->url(fn (Certificado $record): string => route('certificados.verificar', $record->codigo_cer))
+                        ->openUrlInNewTab(),
+
+                    // 3. Editar
+                    EditAction::make(),
+                    
+                    // 4. Eliminar
+                    DeleteAction::make(),
+                ])
+                ->icon('heroicon-m-bars-3')
+                ->tooltip('Opciones'),
             ]);
     }
 
