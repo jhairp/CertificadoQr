@@ -6,7 +6,6 @@
     <title>Acceso denegado</title>
     
     <style>
-        /* Reset completo */
         * {
             margin: 0;
             padding: 0;
@@ -19,21 +18,37 @@
         }
         
         body {
-            background-color: #030712;
+            background-color: #ffffff;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            overflow: hidden; /* Elimina scrollbars */
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
         }
         
         .container {
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             width: 100%;
-            height: 100vh;
-            padding: 2rem;
+            max-width: 700px;
+            padding: 1rem;
+        }
+        
+        .title {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 0.3rem;
+            text-align: center;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-weight: 400;
         }
         
         .image-wrapper {
@@ -41,12 +56,11 @@
             align-items: center;
             justify-content: center;
             width: 100%;
-            height: 100%;
         }
         
         .image-wrapper img {
-            max-width: 90%;
-            max-height: 90vh;
+            max-width: 80%;
+            max-height: 55vh;
             width: auto;
             height: auto;
             object-fit: contain;
@@ -56,6 +70,8 @@
 </head>
 <body>
     <div class="container">
+        <h1 class="title">Error 403</h1>
+        <p class="subtitle">No tienes permiso para ver esta página</p>
         <div class="image-wrapper">
             <img 
                 src="{{ asset('images/403.webp') }}" 
