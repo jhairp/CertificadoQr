@@ -31,22 +31,22 @@
             align-items: center;
             justify-content: center;
             width: 100%;
-            max-width: 700px;
+            max-width: 800px;
             padding: 1rem;
         }
         
         .title {
-            font-size: 3rem;
+            font-size: 4rem;
             font-weight: 700;
             color: #1a1a1a;
-            margin-bottom: 0.3rem;
+            margin-bottom: 0.5rem;
             text-align: center;
         }
         
         .subtitle {
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             color: #666;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
             text-align: center;
             font-weight: 400;
         }
@@ -59,8 +59,8 @@
         }
         
         .image-wrapper img {
-            max-width: 80%;
-            max-height: 55vh;
+            max-width: 100%;
+            max-height: 65vh;
             width: auto;
             height: auto;
             object-fit: contain;
